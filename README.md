@@ -14,8 +14,7 @@ Please take note. I hope that relevant staff members at Alibaba who see this art
 
 See the evidence for details(# 證據(Evidence))
 
-# Karcher Merge
-
+# Karcher merge
 ## Overview
 `Karcher_merge.py` is a Python script for merging model weights using the Karcher mean, a concept from Riemannian geometry. It supports both `.safetensors` and `.bin` formats and allows merging up to 100 model weights.
 
@@ -36,24 +35,6 @@ Ensure you have Python 3 and install dependencies:
 ```bash
 pip install torch safetensors
 ```
-
-## Usage
-```bash
-python Karcher_merge.py --models modelA.safetensors modelB.bin \
-    --alphas 0.4 0.6 --output merged.safetensors \
-    --device cuda --karcher-iter 10 --karcher-tol 1e-5
-```
-
-### Arguments
-| Argument | Description |
-|----------|-------------|
-| `--models` | List of model weight files to merge (2-100 files) |
-| `--alphas` | Weight coefficients for merging (default: equal weights) |
-| `--device` | Compute device: `cpu` or `cuda` (default: `cpu`) |
-| `--output` | Output filename (default: `merged.safetensors`) |
-| `--copy-extra-files` | Copy additional non-weight files from first model |
-| `--karcher-iter` | Maximum iterations for Karcher mean computation (default: 10) |
-| `--karcher-tol` | Convergence tolerance for Karcher mean algorithm (default: `1e-5`) |
 
 ## How It Works
 The script implements the Karcher mean method to merge model weights iteratively:
@@ -109,3 +90,65 @@ See [LICENSE](./LICENSE) for full details.
 
 ## 算法由葉佐俊（dc ID:win100，我本人）版權所有，如若盜用必定追究責任，且將被學術界認定為垃圾！
 I have to protect myself because of the actions of some people.
+
+---
+
+---
+
+# Karcher Merge Fork Information
+## Overview
+#### ~~vibe coding warning~~
+#### This modification of the Karcher mean script was used to create **[Karmix-XL v0](https://huggingface.co/chemwolf/Karmix-XL-v0)** [(Article)](https://rentry.co/-introducing-karcher-mean-experimental-model-v0) 
+
+**Differences from original:**
+
+- Layer-specific weights: adds `--alphas-te`, `--alphas-unet-in`, `--alphas-unet-mid`, `--alphas-unet-out` with validation/normalization.
+- VAE handling: keys `first_stage_model.*` are copied from the first model instead of being merged.
+- Numerical stability: `float32` accumulation on target device, clamped dot product, skip when `sin(theta) ≈ 0`, unit re-normalization per iteration.
+- Non-float tensors: copied from the first model (e.g., int/bool buffers) instead of merging.
+- Shape alignment: zero-padding of the last two dimensions with extra checks/warnings; skip layer on mismatch.
+- Logging: `--log-details` writes a per-layer merge log (alpha source, copied/skipped layers).
+- Progress: `tqdm` progress bar during merging.
+- `.bin` loading: attempts `torch.load(..., weights_only=True)` with safe fallback and clearer errors.
+- Memory/saving: merged tensors moved to CPU before saving to reduce VRAM usage spikes.
+- Extra files: more robust copying `(shutil.copy2)`, excludes `.bin`/`.safetensors`/`.pt`/`.ckpt`, creates output dir, reports counts.
+- CLI changes: new flags, explicit exit codes (0/1).
+- Dependency: requires `tqdm` for progress display.
+
+## Usage
+Usage example (Layered):
+```bash
+python Karcher_merge.py --models modelA.safetensors modelB.safetensors \
+    --alphas 0.5 0.5 \
+    --alphas-te 0.1 0.9 \
+    --alphas-unet-in 0.6 0.4 \
+    --alphas-unet-mid 0.6 0.4 \
+    --alphas-unet-out 0.35 0.65 \
+    --output merged_model.safetensors --device cuda --karcher-iter 10 --karcher-tol 1e-5
+```
+Usage example (Uniform alphas):
+```bash
+python Karcher_merge.py --models modelA.safetensors modelB.safetensors \
+    --alphas 0.3 0.7 \
+    --output merged_model.safetensors --device cuda --karcher-iter 10 --karcher-tol 1e-5
+```
+
+### Arguments
+| Argument | Description |
+|----------|-------------|
+| `--models` | List of model weight files to merge (2-100 files) |
+| `--alphas` | Weight coefficients for merging (default: equal weights) |
+| `--device` | Compute device: `cpu` or `cuda` (default: `cpu`) |
+| `--output` | Output filename (default: `merged_model.safetensors`) |
+| `--copy-extra-files` | Copy additional non-weight files from first model |
+| `--karcher-iter` | Maximum iterations for Karcher mean computation (default: 10) |
+| `--karcher-tol` | Convergence tolerance for Karcher mean algorithm (default: `1e-5`) |
+| `--alphas-te` | Specific weights for Text Encoder layers (e.g., `conditioner.*`) |
+| `--alphas-unet-in` | Specific weights for UNet Input Blocks (e.g., `model.diffusion_model.input_blocks.*`) |
+| `--alphas-unet-mid` | Specific weights for UNet Middle Block (e.g., `model.diffusion_model.middle_block.*`) |
+| `--alphas-unet-out` | Specific weights for UNet Output Blocks (e.g., `model.diffusion_model.output_blocks.*`) |
+| `--log-details` | Log the specific alphas used for each merged layer to a text file. |
+
+# Special Thanks:
+- **[win10ogod](https://github.com/win10ogod)** for his work and for the [Karcher mean](https://github.com/win10ogod/Karcher-merge) merge method script. 
+- **su momo** from [SDCN](https://t.me/StableDiffusion_CN) for creating this modification, implementing detailed logging, VAE fix and Alphas ratio management for **TE/UNet-in/UNet-mid/UNet-out.**
