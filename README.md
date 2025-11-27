@@ -90,7 +90,7 @@ I have to protect myself because of the actions of some people.
 # Karcher Merge Fork Information
 ## Overview
 #### ~~vibe coding warning~~
-#### This modification of the Karcher mean script was used to create **[Karmix-XL v0](https://huggingface.co/chemwolf/Karmix-XL-v0)** [(Article)](https://rentry.co/-introducing-karcher-mean-experimental-model-v0) 
+#### This modification of the Karcher mean script was used to create **[Karmix-XL v0](https://huggingface.co/chemwolf/Karmix-XL-v0)**
 
 **Differences from original:**
 
